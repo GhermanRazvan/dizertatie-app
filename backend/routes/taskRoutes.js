@@ -6,12 +6,12 @@ import {
   updateTask,
   deleteTask,
 } from '../controllers/taskController.js';
-// Am eliminat importul pentru 'protect'
+import { protect } from '../middleware/authMiddleware.js'; // <-- IMPORTĂM GARDIANUL
 
 const router = express.Router();
 
-// Am eliminat 'protect' din fața fiecărei rute. Acum sunt din nou publice.
-router.route('/').get(getTasks).post(createTask);
-router.route('/:id').get(getTaskById).put(updateTask).delete(deleteTask);
+// Aplicăm gardianul `protect` pe toate rutele.
+router.route('/').get(protect, getTasks).post(protect, createTask);
+router.route('/:id').get(protect, getTaskById).put(protect, updateTask).delete(protect, deleteTask);
 
 export default router;

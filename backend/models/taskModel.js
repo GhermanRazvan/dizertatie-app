@@ -2,7 +2,12 @@ import mongoose from 'mongoose';
 
 const taskSchema = new mongoose.Schema(
   {
-    // Am eliminat câmpul 'user'
+    // Adăugăm o legătură către modelul User
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: 'User', 
+    },
     title: {
       type: String,
       required: [true, 'Te rog adaugă un titlu pentru task.'],

@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true, // Fiecare email trebuie să fie unic
+    unique: true,
   },
   password: {
     type: String,
@@ -19,18 +19,16 @@ const userSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Metodă pentru a compara parola introdusă cu cea hăshuită din DB
+// Metodă pentru a compara parola introdusă cu cea hăshuită
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Hăshuiește parola înainte de a salva un utilizator nou
+// Hăshuiește parola înainte de a salva
 userSchema.pre('save', async function (next) {
-  // Rulează doar dacă parola a fost modificată (sau este nouă)
   if (!this.isModified('password')) {
     next();
   }
-
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
