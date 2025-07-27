@@ -5,14 +5,14 @@ import axios from 'axios';
 import MapView, { Marker } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import { requestForegroundPermissionsAsync, getCurrentPositionAsync } from 'expo-location';
-//import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 // Asigură-te că IP-ul și cheia API sunt corecte
 const API_BASE_URL = 'http://192.168.1.13:5000/api/tasks';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyAw8gl_82U2v05RGq8Xn8VzppoGimAuCd4';
 
 const RouteMapScreen = () => {
-  // Am eliminat userToken
+  const { userToken, logout } = useAuth();
   const [origin, setOrigin] = useState(null);
   const [markers, setMarkers] = useState([]);
   const [orderedTasks, setOrderedTasks] = useState([]);
@@ -34,10 +34,11 @@ const RouteMapScreen = () => {
   useFocusEffect(
     useCallback(() => {
       const fetchAndProcessData = async () => {
+        if (!userToken) return;
         setLoading(true);
         try {
-          // Cerere simplă, fără token
-          const tasksResponse = await axios.get(API_BASE_URL);
+          const config = { headers: { Authorization: `Bearer ${userToken}` } };
+          const tasksResponse = await axios.get(API_BASE_URL, config);
           
           let { status } = await requestForegroundPermissionsAsync();
           if (status !== 'granted') {
@@ -55,13 +56,13 @@ const RouteMapScreen = () => {
           const resolvedMarkers = (await Promise.all(geocodingPromises)).filter(Boolean);
           setMarkers(resolvedMarkers);
         } catch (error) {
-          setErrorMsg("A apărut o eroare.");
+          if (error.response?.status === 401) { logout(); }
         } finally {
           setLoading(false);
         }
       };
       fetchAndProcessData();
-    }, [])
+    }, [userToken])
   );
 
   const waypoints = markers.map(m => m.coordinate);

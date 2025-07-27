@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import axios from 'axios';
-//import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 // Folosim aceeași adresă IP pe care ai configurat-o deja
 // Asigură-te că este cea corectă: 192.168.1.11
@@ -11,27 +11,19 @@ const AddTaskScreen = ({ navigation }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [address, setAddress] = useState('');
-  // Am eliminat userToken
+  const { userToken } = useAuth();
 
   const handleAddTask = async () => {
     if (!title) {
       Alert.alert('Eroare', 'Titlul este obligatoriu.');
       return;
     }
-
     try {
-      // Cerere simplă, fără token
-      const newTask = {
-        title,
-        description,
-        location: {
-          address,
-        },
-      };
-      await axios.post(API_URL, newTask);
+      const config = { headers: { Authorization: `Bearer ${userToken}` } };
+      const newTask = { title, description, location: { address } };
+      await axios.post(API_URL, newTask, config);
       navigation.goBack();
     } catch (error) {
-      console.error('Eroare la adăugarea task-ului:', error);
       Alert.alert('Eroare', 'Nu s-a putut salva task-ul.');
     }
   };
