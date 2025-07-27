@@ -5,14 +5,14 @@ import axios from 'axios';
 import MapView, { Marker } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
 import { requestForegroundPermissionsAsync, getCurrentPositionAsync } from 'expo-location';
-import { useAuth } from '../context/AuthContext';
+//import { useAuth } from '../context/AuthContext';
 
 // Asigură-te că IP-ul și cheia API sunt corecte
 const API_BASE_URL = 'http://192.168.1.13:5000/api/tasks';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyAw8gl_82U2v05RGq8Xn8VzppoGimAuCd4';
 
 const RouteMapScreen = () => {
-  const { userToken } = useAuth();
+  // Am eliminat userToken
   const [origin, setOrigin] = useState(null);
   const [markers, setMarkers] = useState([]);
   const [orderedTasks, setOrderedTasks] = useState([]);
@@ -27,7 +27,6 @@ const RouteMapScreen = () => {
       });
       return response.data.results.length > 0 ? response.data.results[0].geometry.location : null;
     } catch (error) {
-      console.error("Eroare la Geocoding:", error);
       return null;
     }
   };
@@ -35,50 +34,41 @@ const RouteMapScreen = () => {
   useFocusEffect(
     useCallback(() => {
       const fetchAndProcessData = async () => {
-        if (!userToken) return;
+        setLoading(true);
         try {
-          setLoading(true);
-          setErrorMsg(null);
-          setOrderedTasks([]);
-
+          // Cerere simplă, fără token
+          const tasksResponse = await axios.get(API_BASE_URL);
+          
           let { status } = await requestForegroundPermissionsAsync();
           if (status !== 'granted') {
             setErrorMsg('Permisiunea pentru locație a fost refuzată.');
-            setLoading(false);
-            return;
+            setLoading(false); return;
           }
           let location = await getCurrentPositionAsync({});
           setOrigin({ latitude: location.coords.latitude, longitude: location.coords.longitude });
-
-          // Configurăm header-ul de autorizare
-          const config = { headers: { Authorization: `Bearer ${userToken}` } };
-          const tasksResponse = await axios.get(API_BASE_URL, config);
-          const tasksWithLocation = tasksResponse.data.filter(task => !task.isCompleted && task.location?.address);
           
+          const tasksWithLocation = tasksResponse.data.filter(task => !task.isCompleted && task.location?.address);
           const geocodingPromises = tasksWithLocation.map(async task => {
             const loc = await getCoordinatesFromAddress(task.location.address);
             return loc ? { ...task, coordinate: { latitude: loc.lat, longitude: loc.lng } } : null;
           });
-
           const resolvedMarkers = (await Promise.all(geocodingPromises)).filter(Boolean);
           setMarkers(resolvedMarkers);
-
         } catch (error) {
-          console.error("Eroare la procesarea datelor:", error);
           setErrorMsg("A apărut o eroare.");
         } finally {
           setLoading(false);
         }
       };
       fetchAndProcessData();
-    }, [userToken])
+    }, [])
   );
 
   const waypoints = markers.map(m => m.coordinate);
   const destination = waypoints.pop();
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#0000ff" /><Text>Se calculează ruta...</Text></View>;
+    return <View style={styles.centered}><ActivityIndicator size="large" /><Text>Se calculează ruta...</Text></View>;
   }
   
   if (errorMsg) {
@@ -90,7 +80,6 @@ const RouteMapScreen = () => {
       <MapView ref={mapRef} style={styles.map} initialRegion={origin ? { ...origin, latitudeDelta: 0.0922, longitudeDelta: 0.0421 } : null}>
         {origin && <Marker coordinate={origin} title="Locația ta" pinColor="blue" />}
         {markers.map((marker) => <Marker key={marker._id} coordinate={marker.coordinate} title={marker.title} />)}
-
         {origin && destination && (
           <MapViewDirections
             origin={origin}
@@ -118,7 +107,6 @@ const RouteMapScreen = () => {
           />
         )}
       </MapView>
-
       {orderedTasks.length > 0 && (
         <View style={styles.listContainer}>
           <Text style={styles.listTitle}>Ordine Traseu Optimizat:</Text>
@@ -131,7 +119,6 @@ const RouteMapScreen = () => {
           />
         </View>
       )}
-
       {markers.length === 0 && !loading && (
          <View style={styles.overlay}><Text style={styles.overlayText}>Niciun obiectiv cu locație.</Text></View>
       )}
